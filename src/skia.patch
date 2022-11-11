@@ -527,7 +527,7 @@ index dcb51de458..1aeda3cef5 100644
 +    }
 +}
 diff --git a/src/svg/SkSVGDevice.h b/src/svg/SkSVGDevice.h
-index 8705ad5066..345fea5af2 100644
+index 8705ad5066..470962c068 100644
 --- a/src/svg/SkSVGDevice.h
 +++ b/src/svg/SkSVGDevice.h
 @@ -14,6 +14,9 @@
@@ -570,7 +570,7 @@ index 8705ad5066..345fea5af2 100644
      SkParsePath::PathEncoding pathEncoding() const;
  
      class AutoElement;
-@@ -88,13 +97,34 @@ private:
+@@ -88,13 +97,38 @@ private:
      const std::unique_ptr<ResourceBucket> fResourceBucket;
      const uint32_t                        fFlags;
  
@@ -585,6 +585,10 @@ index 8705ad5066..345fea5af2 100644
 +    SkString                     fRootElementID;
 +    SkString                     fClipPathID;
 +    bool                         fWriteUseElement = true;
++
++    ResourceBucket* bucket() {
++        return fRootDevice->fResourceBucket.get();
++    }
 +
 +    class Layer {
 +    public:
