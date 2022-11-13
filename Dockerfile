@@ -1,6 +1,6 @@
 # Chromium build environment
 # ==========================
-FROM debian:11 AS chromium-build
+FROM --platform=linux/amd64 debian:11 AS chromium-build
 
 WORKDIR /app
 
@@ -32,7 +32,7 @@ ENV CCACHE_SLOPPINESS=time_macros
 
 # Build Chromium for ARM64
 # ========================
-FROM chromium-build AS chromium-arm64
+FROM --platform=linux/amd64 chromium-build AS chromium-arm64
 
 RUN electron/src/build/linux/sysroot_scripts/install-sysroot.py --arch=arm64
 
@@ -47,7 +47,7 @@ RUN --mount=type=cache,target=/app/.ccache \
 
 # Build Chromium for AMD64
 # ========================
-FROM chromium-build AS chromium-amd64
+FROM --platform=linux/amd64 chromium-build AS chromium-amd64
 
 RUN electron/src/build/linux/sysroot_scripts/install-sysroot.py --arch=amd64
 
@@ -62,7 +62,7 @@ RUN --mount=type=cache,target=/app/.ccache \
 
 # ARM64 runtime
 # =============
-FROM --platform=arm64 debian:11 AS html2svg-runtime-arm64
+FROM --platform=linux/arm64 debian:11 AS html2svg-runtime-arm64
 
 RUN apt-get update && apt-get install -y libglib2.0-0 libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 libgtk-3-0 libgbm1 libasound2
 
@@ -71,7 +71,7 @@ COPY --from=chromium-amd64 /app/electron/src/out/release/libffmpeg.so /runtime/
 
 # AMD64 runtime
 # =============
-FROM --platform=amd64 debian:11 AS html2svg-runtime-amd64
+FROM --platform=linux/amd64 debian:11 AS html2svg-runtime-amd64
 
 RUN apt-get update && apt-get install -y libglib2.0-0 libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 libgtk-3-0 libgbm1 libasound2
 
