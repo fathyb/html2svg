@@ -57,5 +57,11 @@ RUN --mount=type=cache,target=/app/.ccache \
 
 FROM debian:11 
 
-COPY --from=chromium-arm64 /app/electron/src/out /app/electron/src/out
-COPY --from=chromium-amd64 /app/electron/src/out /app/electron/src/out
+
+COPY --from=chromium-amd64 /app/electron/src/out/release/electron /runtime/
+COPY --from=chromium-amd64 /app/electron/src/out/release/libffmpeg.so /runtime/
+
+RUN apt-get update
+RUN apt-get install -y libglib2.0-0 libnss3 	libatk1.0-0 	libatk-bridge2.0-0 libcups2 libdrm2 	libgtk-3-0 	libgbm1 	libasound2
+
+RUN /runtime/electron
