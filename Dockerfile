@@ -46,7 +46,7 @@ RUN --mount=type=cache,target=/app/.ccache \
     --mount=type=cache,target=/app/.git_cache \
     scripts/ninja.sh release -j200
 
-RUN electron/src/electron/script/strip-binaries.py -d electron/src/out/release && \
+RUN electron/src/electron/script/strip-binaries.py -d electron/src/out/release --target-cpu=arm64 && \
     ninja -C electron/src/out/release electron:electron_dist_zip
 
 
@@ -80,13 +80,9 @@ COPY --from=chromium-amd64 /app/electron/src/out/release/dist.zip /amd64.zip
 RUN unzip /arm64.zip -d /arm64
 RUN unzip /amd64.zip -d /amd64
 
-
-# Main image
-# ==========
-FROM node:18
-
-RUN apt-get update && \
-    apt-get install -y libglib2.0-0 libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 libgtk-3-0 libgbm1 libasound2 xvfb x11-xkb-utils xfonts-100dpi xfonts-75dpi xfonts-scalable xfonts-cyrillic x11-apps
+# TypeScript build
+# ================
+FROM --platform=$BUILDPLATFORM node:18 AS html2svg-js 
 
 WORKDIR /app
 COPY package.json yarn.lock /app/
@@ -96,8 +92,23 @@ COPY tsconfig.json /app/
 COPY src /app/src
 RUN yarn tsc -b
 
+# Main image
+# ==========
+FROM node:18
+
+RUN apt-get update && \
+    apt-get install --yes \
+        libglib2.0-0 libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 libgtk-3-0 libgbm1 libasound2 \
+        xvfb x11-xkb-utils xfonts-100dpi xfonts-75dpi xfonts-scalable xfonts-cyrillic x11-apps
+
+WORKDIR /app
+COPY --from=html2svg-js /app /app
+RUN yarn --production
+
 ARG TARGETARCH
 COPY --from=html2svg-binaries /${TARGETARCH} /runtime
 
-CMD ["xvfb-run", "/runtime/electron", "--no-sandbox", "--headless"]
+COPY /scripts/docker-entrypoint.sh /app/scripts/docker-entrypoint.sh
+ENTRYPOINT ["/app/scripts/docker-entrypoint.sh"]
+CMD ["html2svg"]
 
