@@ -21,7 +21,15 @@ $ curl -d http://google.com http://localhost:8765 > google.svg
 
 ## Development
 
-> -   Building Chromium for ARM on Linux or Windows is not officially supported, cross-compile from x64 instead.
+> - Building Chromium for ARM on Linux or Windows is not officially supported, cross-compile from x64 instead.
+
+### Docker
+
+```shell
+$ docker buildx build . --platform linux/arm64,linux/amd64
+```
+
+### Local
 
 1. Fetch dependencies:
     ```shell
