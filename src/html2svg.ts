@@ -1,8 +1,6 @@
 import { app, BrowserWindow } from 'electron'
 
-app.dock.hide()
-// app.commandLine.appendSwitch('enable-logging')
-app.commandLine.appendSwitch('headless')
+app.dock?.hide()
 app.whenReady()
     .then(async () => {
         const page = new BrowserWindow({

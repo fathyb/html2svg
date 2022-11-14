@@ -1,4 +1,4 @@
-# Chromium build environment
+# Build environment
 # ==========================
 FROM --platform=linux/amd64 debian:11 AS chromium-build
 
@@ -30,8 +30,9 @@ ENV CCACHE_DIR=/app/.ccache
 ENV CCACHE_CPP2=yes
 ENV CCACHE_SLOPPINESS=time_macros
 
-# Build Chromium for ARM64
-# ========================
+
+# ARM64 binaries
+# ==============
 FROM --platform=linux/amd64 chromium-build AS chromium-arm64
 
 RUN electron/src/build/linux/sysroot_scripts/install-sysroot.py --arch=arm64
@@ -45,8 +46,12 @@ RUN --mount=type=cache,target=/app/.ccache \
     --mount=type=cache,target=/app/.git_cache \
     scripts/ninja.sh release -j200
 
-# Build Chromium for AMD64
-# ========================
+RUN electron/src/electron/script/strip-binaries.py -d electron/src/out/release && \
+    ninja -C electron/src/out/release electron:electron_dist_zip
+
+
+# AMD64 binaries
+# ==============
 FROM --platform=linux/amd64 chromium-build AS chromium-amd64
 
 RUN electron/src/build/linux/sysroot_scripts/install-sysroot.py --arch=amd64
@@ -60,20 +65,39 @@ RUN --mount=type=cache,target=/app/.ccache \
     --mount=type=cache,target=/app/.git_cache \
     scripts/ninja.sh release -j200
 
-# ARM64 runtime
-# =============
-FROM --platform=linux/arm64 debian:11 AS html2svg-runtime-arm64
+RUN electron/src/electron/script/strip-binaries.py -d electron/src/out/release && \
+    ninja -C electron/src/out/release electron:electron_dist_zip
 
-RUN apt-get update && apt-get install -y libglib2.0-0 libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 libgtk-3-0 libgbm1 libasound2
 
-COPY --from=chromium-arm64 /app/electron/src/out/release/electron /runtime/
-COPY --from=chromium-arm64 /app/electron/src/out/release/libffmpeg.so /runtime/
+# Release binaries
+# ================
+FROM debian:11 AS html2svg-binaries
 
-# AMD64 runtime
-# =============
-FROM --platform=linux/amd64 debian:11 AS html2svg-runtime-amd64
+RUN apt-get update && apt-get install -y unzip
 
-RUN apt-get update && apt-get install -y libglib2.0-0 libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 libgtk-3-0 libgbm1 libasound2
+COPY --from=chromium-arm64 /app/electron/src/out/release/dist.zip /arm64.zip
+COPY --from=chromium-amd64 /app/electron/src/out/release/dist.zip /amd64.zip
+RUN unzip /arm64.zip -d /arm64
+RUN unzip /amd64.zip -d /amd64
 
-COPY --from=chromium-amd64 /app/electron/src/out/release/electron /runtime/
-COPY --from=chromium-amd64 /app/electron/src/out/release/libffmpeg.so /runtime/
+
+# Main image
+# ==========
+FROM node:18
+
+RUN apt-get update && \
+    apt-get install -y libglib2.0-0 libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 libgtk-3-0 libgbm1 libasound2 xvfb x11-xkb-utils xfonts-100dpi xfonts-75dpi xfonts-scalable xfonts-cyrillic x11-apps
+
+WORKDIR /app
+COPY package.json yarn.lock /app/
+RUN yarn
+
+COPY tsconfig.json /app/
+COPY src /app/src
+RUN yarn tsc -b
+
+ARG TARGETARCH
+COPY --from=html2svg-binaries /${TARGETARCH} /runtime
+
+CMD ["xvfb-run", "/runtime/electron", "--no-sandbox", "--headless"]
+
