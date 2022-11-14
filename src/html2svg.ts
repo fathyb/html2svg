@@ -81,8 +81,8 @@ Promise.resolve().then(async () => {
             page.destroy()
         }
     })
-    .then((result) => {
-        console.log(result)
+    .then(async (result) => {
+        await print(result)
 
         process.exit(0)
     })
@@ -91,3 +91,17 @@ Promise.resolve().then(async () => {
 
         process.exit(1)
     })
+
+// Electron seems to drop lines if we send them too fast on slow streams like Docker..
+async function print(output: string) {
+    const awfulBugSizeHeuristic = 1024
+
+    for(let i = 0; i < output.length; i += awfulBugSizeHeuristic) {
+        await new Promise<void>((resolve, reject) =>
+            process.stdout.write(
+                output.slice(i, i + awfulBugSizeHeuristic),
+                error => error ? reject(error) : resolve(),
+            )
+        )
+    }
+}

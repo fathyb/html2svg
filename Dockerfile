@@ -102,12 +102,13 @@ RUN apt-get update && \
         xvfb x11-xkb-utils xfonts-100dpi xfonts-75dpi xfonts-scalable xfonts-cyrillic x11-apps
 
 WORKDIR /app
-COPY --from=html2svg-js /app /app
+COPY package.json yarn.lock /app/
 RUN yarn --production
 
 ARG TARGETARCH
+COPY --from=html2svg-js /app/build /app/build
 COPY --from=html2svg-binaries /${TARGETARCH} /runtime
-
 COPY /scripts/docker-entrypoint.sh /app/scripts/docker-entrypoint.sh
+
 ENTRYPOINT ["/app/scripts/docker-entrypoint.sh"]
 
