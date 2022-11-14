@@ -1,17 +1,22 @@
 import { app, BrowserWindow } from 'electron'
 
-const entry = process.argv.find(a => a.endsWith('html2svg.js'))
-const index = entry ? process.argv.indexOf(entry) : -1
-const args = process.argv.slice(Math.max(2, index + 1))
-const [url] = args
-
-if (!url) {
-	throw new Error('Usage: html2svg [url]')
-}
-
 app.dock?.hide()
-app.whenReady()
-    .then(async () => {
+
+Promise.resolve().then(async () => {
+    const entry = process.argv.find(a => a.endsWith('html2svg.js'))
+    const index = entry ? process.argv.indexOf(entry) : -1
+    const args = process.argv.slice(Math.max(2, index + 1))
+    const [url] = args
+    
+    if (!url) {
+        throw new Error('Usage: html2svg [url]')
+    }
+
+    await app.whenReady()
+
+    return url
+})
+    .then(async (url) => {
         const page = new BrowserWindow({
             show: false,
             width: 1920,
