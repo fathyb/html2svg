@@ -1,15 +1,18 @@
+import { program } from 'commander'
 import { app, BrowserWindow } from 'electron'
 
-Promise.resolve()
-    .then(async () => {
-        const entry = process.argv.find((a) => a.endsWith('html2svg.js'))
-        const index = entry ? process.argv.indexOf(entry) : -1
-        const args = process.argv.slice(Math.max(2, index + 1))
-        const [url] = args
-
-        if (!url) {
-            throw new Error('Usage: html2svg [url]')
-        }
+program
+    .name('html2svg')
+    .showHelpAfterError()
+    .showSuggestionAfterError()
+    .argument('<url>', 'URL to the web page to render')
+    .option(
+        '-f, --format <format>',
+        'set the output format, should one of these values: svg, pdf',
+        'svg',
+    )
+    .action(async (url, { format }) => {
+        const mode = getMode(format)
 
         app.dock?.hide()
         app.commandLine.appendSwitch('headless')
@@ -47,7 +50,7 @@ Promise.resolve()
                     .catch(reject),
             )
 
-            return await page.webContents.executeJavaScript(
+            const result = await page.webContents.executeJavaScript(
                 `
                     new Promise(resolve => {
                         const style = document.createElement('style')
@@ -69,18 +72,17 @@ Promise.resolve()
                                 requestAnimationFrame(resolve)
                             }, 1000)
                         })
-                    }).then(() => getPageContentsAsSVG(1))
+                    }).then(() => getPageContentsAsSVG(${mode}))
                 `,
             )
+
+            await print(new Uint8Array(result))
         } finally {
             page.destroy()
         }
     })
-    .then(async (result: ArrayBuffer) => {
-        await print(new Uint8Array(result))
-
-        process.exit(0)
-    })
+    .parseAsync(process.argv, {from: 'electron'})
+    .then(() => process.exit(0))
     .catch((error) => {
         console.error(error)
 
@@ -98,5 +100,16 @@ async function print(output: Uint8Array) {
                 (error) => (error ? reject(error) : resolve()),
             ),
         )
+    }
+}
+
+function getMode(format: string) {
+    switch (format) {
+        case 'svg':
+            return 0
+        case 'pdf':
+            return 1
+        default:
+            throw new Error(`Unsupported output format: ${format}`)
     }
 }
