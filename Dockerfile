@@ -109,6 +109,5 @@ ARG TARGETARCH
 COPY --from=html2svg-binaries /${TARGETARCH} /runtime
 
 COPY /scripts/docker-entrypoint.sh /app/scripts/docker-entrypoint.sh
-ENTRYPOINT ["/app/scripts/docker-entrypoint.sh"]
-CMD ["html2svg"]
+CMD ["/app/scripts/docker-entrypoint.sh"]
 

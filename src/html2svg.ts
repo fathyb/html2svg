@@ -1,5 +1,14 @@
 import { app, BrowserWindow } from 'electron'
 
+const entry = process.argv.find(a => a.endsWith('html2svg.js'))
+const index = entry ? process.argv.indexOf(entry) : -1
+const args = process.argv.slice(Math.max(2, index + 1))
+const [url] = args
+
+if (!url) {
+	throw new Error('Usage: html2svg [url]')
+}
+
 app.dock?.hide()
 app.whenReady()
     .then(async () => {
@@ -26,7 +35,7 @@ app.whenReady()
 
                         page.webContents.once('did-finish-load', listener)
 
-                        await page.loadURL('https://yari-demos.prod.mdn.mozit.cloud/en-US/docs/Web/API/Canvas_API/Tutorial/Drawing_shapes/_sample_.making_combinations.html')
+                        await page.loadURL(url)
                     })
                     .catch(reject),
             )
