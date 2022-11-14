@@ -1,6 +1,6 @@
 # `html2svg`
 
-Convert HTML and `<canvas>` to SVG using Chromium.
+Convert HTML and `<canvas>` to vector (SVG, PDF) and bitmap (PNG, JPG, WebP) images using Chromium.
 
 ## Usage
 
