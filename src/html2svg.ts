@@ -72,7 +72,7 @@ program
                                 requestAnimationFrame(resolve)
                             }, 1000)
                         })
-                    }).then(() => getPageContentsAsSVG(${mode}))
+                    }).then(() => getPageContentsAsSVG(${mode}, document.title))
                 `,
             )
 
