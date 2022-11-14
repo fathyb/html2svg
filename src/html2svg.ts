@@ -81,7 +81,7 @@ program
             page.destroy()
         }
     })
-    .parseAsync(process.argv, {from: 'electron'})
+    .parseAsync(process.argv, { from: 'electron' })
     .then(() => process.exit(0))
     .catch((error) => {
         console.error(error)
