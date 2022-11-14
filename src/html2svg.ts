@@ -1,6 +1,5 @@
 import { app, BrowserWindow } from 'electron'
 
-app.dock?.hide()
 
 Promise.resolve().then(async () => {
     const entry = process.argv.find(a => a.endsWith('html2svg.js'))
@@ -11,6 +10,11 @@ Promise.resolve().then(async () => {
     if (!url) {
         throw new Error('Usage: html2svg [url]')
     }
+    
+    app.dock?.hide()
+    app.commandLine.appendSwitch('headless')
+    app.commandLine.appendSwitch('no-sandbox')
+    app.commandLine.appendSwitch('disable-gpu')
 
     await app.whenReady()
 
@@ -21,6 +25,10 @@ Promise.resolve().then(async () => {
             show: false,
             width: 1920,
             height: 1080,
+
+            webPreferences: {
+                sandbox: false
+            }
         })
 
         try {
