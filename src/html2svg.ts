@@ -27,7 +27,7 @@ Promise.resolve().then(async () => {
             height: 1080,
 
             webPreferences: {
-                sandbox: false
+                sandbox: false,
             }
         })
 
