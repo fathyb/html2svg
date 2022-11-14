@@ -1,35 +1,28 @@
 import { app, BrowserWindow } from 'electron'
 
+Promise.resolve()
+    .then(async () => {
+        const entry = process.argv.find((a) => a.endsWith('html2svg.js'))
+        const index = entry ? process.argv.indexOf(entry) : -1
+        const args = process.argv.slice(Math.max(2, index + 1))
+        const [url] = args
 
-Promise.resolve().then(async () => {
-    const entry = process.argv.find(a => a.endsWith('html2svg.js'))
-    const index = entry ? process.argv.indexOf(entry) : -1
-    const args = process.argv.slice(Math.max(2, index + 1))
-    const [url] = args
-    
-    if (!url) {
-        throw new Error('Usage: html2svg [url]')
-    }
-    
-    app.dock?.hide()
-    app.commandLine.appendSwitch('headless')
-    app.commandLine.appendSwitch('no-sandbox')
-    app.commandLine.appendSwitch('disable-gpu')
+        if (!url) {
+            throw new Error('Usage: html2svg [url]')
+        }
 
-    await app.whenReady()
+        app.dock?.hide()
+        app.commandLine.appendSwitch('headless')
+        app.commandLine.appendSwitch('no-sandbox')
+        app.commandLine.appendSwitch('disable-gpu')
 
-    return url
-})
-    .then(async (url) => {
+        await app.whenReady()
+
         const page = new BrowserWindow({
             show: false,
             width: 1920,
             height: 1080,
-
-            webPreferences: {
-                sandbox: false,
-                webSecurity: false,
-            }
+            webPreferences: { sandbox: false },
         })
 
         try {
@@ -76,15 +69,15 @@ Promise.resolve().then(async () => {
                                 requestAnimationFrame(resolve)
                             }, 1000)
                         })
-                    }).then(getPageContentsAsSVG)
+                    }).then(() => getPageContentsAsSVG(1))
                 `,
             )
         } finally {
             page.destroy()
         }
     })
-    .then(async (result) => {
-        await print(result)
+    .then(async (result: ArrayBuffer) => {
+        await print(new Uint8Array(result))
 
         process.exit(0)
     })
@@ -95,15 +88,15 @@ Promise.resolve().then(async () => {
     })
 
 // Electron seems to drop lines if we send them too fast on slow streams like Docker..
-async function print(output: string) {
+async function print(output: Uint8Array) {
     const awfulBugSizeHeuristic = 1024
 
-    for(let i = 0; i < output.length; i += awfulBugSizeHeuristic) {
+    for (let i = 0; i < output.length; i += awfulBugSizeHeuristic) {
         await new Promise<void>((resolve, reject) =>
             process.stdout.write(
                 output.slice(i, i + awfulBugSizeHeuristic),
-                error => error ? reject(error) : resolve(),
-            )
+                (error) => (error ? reject(error) : resolve()),
+            ),
         )
     }
 }
