@@ -1,6 +1,10 @@
 import { program } from 'commander'
 import { app, BrowserWindow } from 'electron'
 
+const entry = process.argv.find((a) => a.endsWith('html2svg.js'))
+const index = entry ? process.argv.indexOf(entry) : -1
+const args = process.argv.slice(Math.max(2, index + 1))
+
 program
     .name('html2svg')
     .showHelpAfterError()
@@ -81,7 +85,7 @@ program
             page.destroy()
         }
     })
-    .parseAsync(process.argv, { from: 'electron' })
+    .parseAsync(args, { from: 'user' })
     .then(() => process.exit(0))
     .catch((error) => {
         console.error(error)
