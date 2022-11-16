@@ -13,7 +13,7 @@ program
     .option('-f, --full', 'capture the entire page')
     .option(
         '-w, --wait <seconds>',
-        'set the amount of time to seconds between the page loaded event and taking the screenshot',
+        'set the amount of seconds to wait between the page loaded event and taking the screenshot',
         validateInt,
         1,
     )
