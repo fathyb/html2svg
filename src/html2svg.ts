@@ -71,7 +71,7 @@ program
                         const policy = trustedTypes.createPolicy('html2svg/scrollbar-css', { createHTML: x => x })
 
                         style.innerHTML = policy.createHTML(\`
-                            body::-webkit-scrollbar, body::-webkit-scrollbar-track, body::-webkit-scrollbar-thumb {
+                            *::-webkit-scrollbar, *::-webkit-scrollbar-track, *::-webkit-scrollbar-thumb {
                                 display: none;
                             }
                         \`)
