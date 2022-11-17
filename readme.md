@@ -22,7 +22,7 @@ Options:
   -w, --wait <seconds>   set the amount of seconds to wait between the page loaded event and taking the screenshot (default: 1)
   -w, --width <width>    set the viewport width in pixels (default: 1920)
   -h, --height <height>  set the viewport height in pixels (default: 1080)
-  -f, --format <format>  set the output format, should one of these values: svg, pdf (default: "svg")
+  -f, --format <format>  set the output format, should one of these values: svg, pdf, png, jpg, webp (default: "svg")
   --help                 display help for command
 ```
 
