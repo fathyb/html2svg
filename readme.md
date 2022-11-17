@@ -10,6 +10,8 @@ $ docker run fathyb/html2svg https://google.com > google.svg
 $ docker run fathyb/html2svg https://google.com --format svg > google.svg
 # export to PDF
 $ docker run fathyb/html2svg https://google.com --format pdf > google.pdf
+# export to PNG
+$ docker run fathyb/html2svg https://google.com --format png > google.png
 # show help
 $ docker run fathyb/html2svg --help
 Usage: html2svg [options] <url>
