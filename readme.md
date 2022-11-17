@@ -33,6 +33,7 @@ Options:
 ### Local
 
 > You'll need to install all tools required to build Chromium: https://www.chromium.org/developers/how-tos/get-the-code/
+> If you're running Linux, you can use [the Docker build instructions](#docker) to generate binaries.
 
 1. Fetch dependencies:
     ```shell
@@ -61,7 +62,7 @@ Options:
 
 ### Docker
 
-> We use `docker run` instead of `Dockerfile` for building Chromium to support incremental building
+> We use `docker run` instead of `Dockerfile` for building Chromium to support incremental building.
 
 ```shell
 # Create the build environment
