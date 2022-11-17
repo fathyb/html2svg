@@ -31,7 +31,7 @@ program
     )
     .option(
         '-f, --format <format>',
-        'set the output format, should one of these values: svg, pdf',
+        'set the output format, should one of these values: svg, pdf, png, jpg, webp',
         'svg',
     )
     .action(async (url, { full, wait, width, height, format }) => {
@@ -131,6 +131,13 @@ function getMode(format: string) {
             return 0
         case 'pdf':
             return 1
+        case 'png':
+            return 2
+        case 'jpg':
+        case 'jpeg':
+            return 3
+        case 'webp':
+            return 4
         default:
             throw new Error(`Unsupported output format: ${format}`)
     }
