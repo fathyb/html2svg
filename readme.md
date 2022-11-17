@@ -61,6 +61,8 @@ Options:
 
 ### Docker
 
+> We use `docker run` instead of `Dockerfile` for building Chromium to support incremental building
+
 ```shell
 # Create the build environment
 $ docker build . --build-arg "WORKDIR=$(pwd)" --target build-env --tag html2svg-build-env
