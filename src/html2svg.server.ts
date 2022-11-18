@@ -6,15 +6,17 @@ import { html2svg, Options } from './html2svg'
 
 if (require.main === module) {
     const options = JSON.parse(process.env.HTML2SVG_SERVER_OPTIONS ?? '{}')
-    const { unix, host, port } = options
+    const { path, host, port, log } = options
 
     server(options)
         .then(() => {
-            process.stderr.write(
-                `Listening on ${
-                    unix ? `unix socket ${unix}` : `${host}:${port}`
-                }\n`,
-            )
+            if (log !== false) {
+                process.stderr.write(
+                    `Listening on ${
+                        path ? `unix socket ${path}` : `${host}:${port}`
+                    }\n`,
+                )
+	    }
         })
         .catch((error) => {
             console.error(error)

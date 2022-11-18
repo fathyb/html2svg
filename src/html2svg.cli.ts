@@ -64,7 +64,7 @@ export async function cli(args: string[]) {
             await mkdir(dir, { recursive: true })
 
             try {
-                const server = serve({ path })
+                const server = serve({ path, log: false })
 
                 await Promise.all([
                     server.wait(),
@@ -155,7 +155,7 @@ async function sleep(ms: number) {
     await new Promise<void>((resolve) => setTimeout(resolve, ms))
 }
 
-function serve(options: ListenOptions) {
+function serve(options: ListenOptions & { log?: boolean }) {
     const child = spawn(
         require.resolve('./runtime/electron'),
         ['--no-sandbox', require.resolve('./html2svg.server')],
