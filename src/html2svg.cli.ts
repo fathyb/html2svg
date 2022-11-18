@@ -1,13 +1,13 @@
 import { join } from 'path'
 import { tmpdir } from 'os'
 import { program } from 'commander'
+import { pipeline } from 'stream/promises'
 import { mkdir, rm } from 'fs/promises'
 import { randomBytes } from 'crypto'
 import { ListenOptions } from 'net'
 import { ChildProcess, spawn } from 'child_process'
 import { IncomingMessage, request } from 'http'
 
-import { readStream } from './read-stream'
 import { Options } from './html2svg'
 
 if (require.main === module) {
@@ -138,20 +138,7 @@ async function printRequest(res: IncomingMessage) {
         throw new Error(`Server error ${res.statusCode}`)
     }
 
-    const size = 8 * 1024
-    const buffer = await readStream(res)
-
-    for (let i = 0; i < buffer.length; i += size) {
-        await new Promise<void>((resolve, reject) =>
-            process.stdout.write(buffer.subarray(i, i + size), (error) => {
-                if (error) {
-                    reject(error)
-                } else {
-                    resolve()
-                }
-            }),
-        )
-    }
+    await pipeline(res, process.stdout)
 }
 
 function validateInt(string: string) {
