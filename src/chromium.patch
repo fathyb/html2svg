@@ -1,12 +1,13 @@
 diff --git a/content/renderer/render_frame_impl.cc b/content/renderer/render_frame_impl.cc
-index 97cf24ad5f4a6..bcff94ccc4b92 100644
+index 97cf24ad5f4a6..c0beaca0a1626 100644
 --- a/content/renderer/render_frame_impl.cc
 +++ b/content/renderer/render_frame_impl.cc
-@@ -256,6 +256,17 @@
+@@ -256,6 +256,18 @@
  #include "content/renderer/java/gin_java_bridge_dispatcher.h"
  #endif
  
 +// html2svg includes
++#include <stdlib.h>
 +#include <iostream>
 +#include "cc/paint/paint_recorder.h"
 +#include "cc/paint/skia_paint_canvas.h"
@@ -20,7 +21,7 @@ index 97cf24ad5f4a6..bcff94ccc4b92 100644
  using base::Time;
  using blink::ContextMenuData;
  using blink::WebContentDecryptionModule;
-@@ -3822,6 +3833,162 @@ void RenderFrameImpl::DidClearWindowObject() {
+@@ -3822,6 +3834,176 @@ void RenderFrameImpl::DidClearWindowObject() {
  
    for (auto& observer : observers_)
      observer.DidClearWindowObject();
@@ -54,8 +55,18 @@ index 97cf24ad5f4a6..bcff94ccc4b92 100644
 +    }
 +    
 +    void flush() override {
-+      if (::write(1, fBytes, fBytesBuffered) != -1) {
-+        fBytesBuffered = 0;
++      ssize_t offset = 0;
++
++      while (fBytesBuffered != 0) {
++        ssize_t written = ::write(1, &fBytes[offset], fBytesBuffered);
++
++        if (written == -1) {
++          break;
++        }
++
++        offset += written;
++        fBytesBuffered -= written;
++
 +        fflush(stdout);
 +      }
 +    }
@@ -176,10 +187,14 @@ index 97cf24ad5f4a6..bcff94ccc4b92 100644
 +
 +  // Register the function as "getPageContentsAsSVG"
 +  global->Set(
-+      context,
-+      v8::String::NewFromUtf8(isolate, "getPageContentsAsSVG").ToLocalChecked(),
-+      fn->GetFunction(context).ToLocalChecked()
++    context,
++    v8::String::NewFromUtf8(isolate, "getPageContentsAsSVG").ToLocalChecked(),
++    fn->GetFunction(context).ToLocalChecked()
 +  ).Check();
++
++  if (command_line.HasSwitch("html2svg-svg-mode")) {
++    setenv("html2svg_svg_mode", "true", 1);
++  }
  }
  
  void RenderFrameImpl::DidCreateDocumentElement() {
