@@ -10,17 +10,27 @@ export interface Options {
 
 app.dock?.hide()
 app.disableHardwareAcceleration()
-app.commandLine.appendSwitch('headless')
 app.commandLine.appendSwitch('no-sandbox')
-app.commandLine.appendSwitch('disable-gpu')
+app.on('window-all-closed', () => {})
 
 export async function html2svg(
     url: string,
-    { full, wait, width, height, format }: Options = {},
+    { full, wait, format, width = 1920, height = 1080 }: Options = {},
 ) {
     const mode = getMode(format ?? 'svg')
 
     await app.whenReady()
+
+    const args = [
+        '--mute-audio',
+        '--disable-audio-output',
+        '--disable-dev-shm-usage',
+        '--force-color-profile=srgb',
+    ]
+
+    if (mode === 0) {
+        args.push('--html2svg-svg-mode', '--disable-remote-fonts')
+    }
 
     const page = new BrowserWindow({
         width,
@@ -29,10 +39,7 @@ export async function html2svg(
         webPreferences: {
             sandbox: false,
             offscreen: true,
-            additionalArguments:
-                format === 'svg'
-                    ? ['--html2svg-svg-mode', '--disable-remote-fonts']
-                    : [],
+            additionalArguments: args,
         },
     })
 
@@ -58,40 +65,42 @@ export async function html2svg(
                 .catch(reject),
         )
 
-        await page.webContents.executeJavaScript(
+        const buffer: ArrayBuffer = await page.webContents.executeJavaScript(
             `
-                    new Promise(resolve => {
-                        const style = document.createElement('style')
+                new Promise(resolve => {
+                    const style = document.createElement('style')
 
-                        style.innerHTML = trustedTypes
-                            .createPolicy('html2svg/scrollbar-css', { createHTML: x => x })
-                            .createHTML(\`
-                                *::-webkit-scrollbar,
-                                *::-webkit-scrollbar-track,
-                                *::-webkit-scrollbar-thumb {
-                                    display: none;
-                                }
-                            \`)
+                    style.innerHTML = trustedTypes
+                        .createPolicy('html2svg/scrollbar-css', { createHTML: x => x })
+                        .createHTML(\`
+                            *::-webkit-scrollbar,
+                            *::-webkit-scrollbar-track,
+                            *::-webkit-scrollbar-thumb {
+                                display: none;
+                            }
+                        \`)
 
-                        document.head.appendChild(style)
-                        scrollTo({ top: document.body.scrollHeight })
+                    document.head.appendChild(style)
+                    scrollTo({ top: document.body.scrollHeight })
 
-                        requestAnimationFrame(() => {
-                            scrollTo({ top: 0 })
+                    requestAnimationFrame(() => {
+                        scrollTo({ top: 0 })
 
-                            requestAnimationFrame(() =>
-                                setTimeout(resolve, ${(wait ?? 0) * 1000})
-                            )
-                        })
-                    }).then(() =>
-                        getPageContentsAsSVG(
-                            ${full ? 0 : height} * devicePixelRatio,
-                            ${mode},
-                            document.title,
+                        requestAnimationFrame(() =>
+                            setTimeout(resolve, ${(wait ?? 0) * 1000})
                         )
+                    })
+                }).then(() =>
+                    getPageContentsAsSVG(
+                        ${full ? 0 : height} * devicePixelRatio,
+                        ${mode},
+                        document.title,
                     )
-                `,
+                )
+            `,
         )
+
+        return Buffer.from(buffer)
     } finally {
         page.destroy()
     }

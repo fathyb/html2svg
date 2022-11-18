@@ -5,16 +5,16 @@ Convert HTML and `<canvas>` to vector (SVG, PDF) or bitmap (PNG, JPEG, WebP) ima
 ## Usage
 
 ```shell
-# export to SVG
+# Export to SVG
 $ docker run fathyb/html2svg https://google.com > google.svg
 $ docker run fathyb/html2svg https://google.com --format svg > google.svg
-# export to PDF
+# Export to PDF
 $ docker run fathyb/html2svg https://google.com --format pdf > google.pdf
-# export to PNG
+# Export to PNG
 $ docker run fathyb/html2svg https://google.com --format png > google.png
-# show help
+# Display help
 $ docker run fathyb/html2svg --help
-Usage: html2svg [options] <url>
+Usage: html2svg [options] [command] <url>
 
 Arguments:
   url                    URL to the web page to render
@@ -26,6 +26,33 @@ Options:
   -h, --height <height>  set the viewport height in pixels (default: 1080)
   -f, --format <format>  set the output format, should one of these values: svg, pdf, png, jpg, webp (default: "svg")
   --help                 display help for command
+
+Commands:
+  serve [options]
+```
+
+### Server
+
+An HTTP server is also provided:
+
+```shell
+# Start a server on port 8080
+$ docker run -p 8080:8080 fathyb/html2svg serve
+# Export to SVG
+$ curl -d http://google.fr http://localhost:8080 > google.svg
+# Export to PDF
+$ curl -d '{"url": "http://google.fr", "format": "pdf"}' http://localhost:8080 > google.pdf
+# Export to PNG
+$ curl -d '{"url": "http://google.fr", "format": "png"}' http://localhost:8080 > google.png
+# Display help
+$ docker run fathyb/html2svg serve --help
+Usage: html2svg serve [options]
+
+Options:
+  -H, --host <hostname>  set the hostname to listen on (default: "localhost")
+  -p, --port <hostname>  set the port to listen on (default: 8080)
+  -u, --unix <path>      set the unix socket to listen on
+  -h, --help             display help for command
 ```
 
 ## Development
