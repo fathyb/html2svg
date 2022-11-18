@@ -1,6 +1,7 @@
 import { createServer } from 'http'
 import { ListenOptions } from 'net'
 
+import { readStream } from './read-stream'
 import { html2svg, Options } from './html2svg'
 
 if (require.main === module) {
@@ -82,15 +83,4 @@ function parseJSON(data: string) {
     } catch {
         return data
     }
-}
-
-function readStream(stream: NodeJS.ReadableStream) {
-    const chunks: Buffer[] = []
-
-    return new Promise<Buffer>((resolve, reject) =>
-        stream
-            .on('data', (chunk) => chunks.push(chunk))
-            .on('error', (error) => reject(error))
-            .on('end', () => resolve(Buffer.concat(chunks))),
-    )
 }

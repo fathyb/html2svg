@@ -1,12 +1,14 @@
 import { join } from 'path'
-import { spawn } from 'child_process'
 import { tmpdir } from 'os'
-import { request } from 'http'
 import { program } from 'commander'
-import { pipeline } from 'stream/promises'
 import { mkdir, rm } from 'fs/promises'
 import { randomBytes } from 'crypto'
 import { ListenOptions } from 'net'
+import { ChildProcess, spawn } from 'child_process'
+import { IncomingMessage, request } from 'http'
+
+import { readStream } from './read-stream'
+import { Options } from './html2svg'
 
 if (require.main === module) {
     const entry = process.argv.find((a) => a.endsWith(__filename))
@@ -61,49 +63,16 @@ export async function cli(args: string[]) {
 
             await mkdir(dir, { recursive: true })
 
-            const server = serve({ path })
+            try {
+                const server = serve({ path })
 
-            await Promise.all([
-                server.wait(),
-                Promise.resolve().then(async () => {
-                    const start = Date.now()
-
-                    while (Date.now() - start < 10_000) {
-                        const done = await new Promise<boolean>(
-                            (resolve, reject) =>
-                                request({ method: 'POST', socketPath: path })
-                                    .on('error', (error: any) => {
-                                        if (error?.code === 'ENOENT') {
-                                            resolve(false)
-                                        } else {
-                                            reject(error)
-                                        }
-                                    })
-                                    .on('response', (res) => {
-                                        if (res.statusCode === 200) {
-                                            pipeline(res, process.stdout).then(
-                                                () => resolve(true),
-                                                reject,
-                                            )
-                                        } else {
-                                            throw new Error(
-                                                `Server error ${res.statusCode}`,
-                                            )
-                                        }
-                                    })
-                                    .end(JSON.stringify({ url, ...options })),
-                        )
-
-                        if (done) {
-                            return server.process.kill()
-                        } else {
-                            await sleep(100)
-                        }
-                    }
-
-                    throw new Error('Timed out waiting for server to start')
-                }),
-            ]).finally(async () => await rm(path, { force: true }))
+                await Promise.all([
+                    server.wait(),
+                    callServer(url, options, server.process, path),
+                ])
+            } finally {
+                await rm(path, { force: true })
+            }
         })
 
     program
@@ -111,7 +80,7 @@ export async function cli(args: string[]) {
         .option(
             '-H, --host <hostname>',
             'set the hostname to listen on',
-            'localhost',
+            '0.0.0.0',
         )
         .option(
             '-p, --port <hostname>',
@@ -126,6 +95,63 @@ export async function cli(args: string[]) {
         )
 
     await program.parseAsync(args, { from: 'user' })
+}
+
+async function callServer(
+    url: string,
+    options: Options,
+    server: ChildProcess,
+    socketPath: string,
+) {
+    const start = Date.now()
+
+    while (Date.now() - start < 10_000) {
+        const done = await new Promise<boolean>((resolve, reject) =>
+            request({ method: 'POST', socketPath })
+                .on('error', (error: any) => {
+                    if (error?.code === 'ENOENT') {
+                        resolve(false)
+                    } else {
+                        reject(error)
+                    }
+                })
+                .on('response', (res) =>
+                    printRequest(res)
+                        .then(() => resolve(true))
+                        .catch(reject),
+                )
+                .end(JSON.stringify({ url, ...options })),
+        )
+
+        if (done) {
+            return server.kill()
+        } else {
+            await sleep(100)
+        }
+    }
+
+    throw new Error('Timed out waiting for server to start')
+}
+
+async function printRequest(res: IncomingMessage) {
+    if (res.statusCode !== 200) {
+        throw new Error(`Server error ${res.statusCode}`)
+    }
+
+    const size = 8 * 1024
+    const buffer = await readStream(res)
+
+    for (let i = 0; i < buffer.length; i += size) {
+        await new Promise<void>((resolve, reject) =>
+            process.stdout.write(buffer.subarray(i, i + size), (error) => {
+                if (error) {
+                    reject(error)
+                } else {
+                    resolve()
+                }
+            }),
+        )
+    }
 }
 
 function validateInt(string: string) {
@@ -147,6 +173,7 @@ function serve(options: ListenOptions) {
         require.resolve('./runtime/electron'),
         ['--no-sandbox', require.resolve('./html2svg.server')],
         {
+            stdio: 'inherit',
             env: {
                 ...process.env,
                 HTML2SVG_SERVER_OPTIONS: JSON.stringify(options),
