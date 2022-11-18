@@ -1,5 +1,5 @@
 diff --git a/content/renderer/render_frame_impl.cc b/content/renderer/render_frame_impl.cc
-index 97cf24ad5f4a6..c0beaca0a1626 100644
+index 97cf24ad5f4a6..ce12415534d20 100644
 --- a/content/renderer/render_frame_impl.cc
 +++ b/content/renderer/render_frame_impl.cc
 @@ -256,6 +256,18 @@
@@ -21,65 +21,10 @@ index 97cf24ad5f4a6..c0beaca0a1626 100644
  using base::Time;
  using blink::ContextMenuData;
  using blink::WebContentDecryptionModule;
-@@ -3822,6 +3834,176 @@ void RenderFrameImpl::DidClearWindowObject() {
+@@ -3822,6 +3834,126 @@ void RenderFrameImpl::DidClearWindowObject() {
  
    for (auto& observer : observers_)
      observer.DidClearWindowObject();
-+
-+  // A Skia stream writing to stdout
-+  class StdoutStream : public SkWStream {
-+  public:
-+    ~StdoutStream() override {
-+      flush();
-+    }
-+    
-+    bool write(const void* data, size_t size) override {
-+      auto* buffer = static_cast<const char*>(data);
-+      size_t remaining = size;
-+
-+      while (remaining != 0) {
-+        ssize_t length = std::min(sizeof(fBytes) - fBytesBuffered, remaining);
-+
-+        std::memcpy(&fBytes[fBytesBuffered], &buffer[size - remaining], length);
-+
-+        remaining -= length;
-+        fBytesWritten += length;
-+        fBytesBuffered += length;
-+
-+        if (fBytesBuffered == sizeof(fBytes)) {
-+          flush();
-+        }
-+      }
-+
-+      return true;
-+    }
-+    
-+    void flush() override {
-+      ssize_t offset = 0;
-+
-+      while (fBytesBuffered != 0) {
-+        ssize_t written = ::write(1, &fBytes[offset], fBytesBuffered);
-+
-+        if (written == -1) {
-+          break;
-+        }
-+
-+        offset += written;
-+        fBytesBuffered -= written;
-+
-+        fflush(stdout);
-+      }
-+    }
-+    
-+    size_t bytesWritten() const override {
-+      return fBytesWritten;
-+    }
-+  
-+  private:
-+    char fBytes[8 * 1024];
-+    size_t fBytesWritten = 0;
-+    size_t fBytesBuffered = 0;
-+  };
 +
 +  // Get access to the JS VM for this process (each tab is a process)
 +  v8::Isolate *isolate = blink::MainThreadIsolate();
@@ -124,7 +69,7 @@ index 97cf24ad5f4a6..c0beaca0a1626 100644
 +        );
 +
 +        // Create a memory stream to save the SVG content
-+        auto stream = std::make_unique<StdoutStream>();
++        SkDynamicMemoryWStream stream;
 +        // Get the recording data
 +        auto picture = recorder.finishRecordingAsPicture();
 +        auto mode = args[1]->ToUint32(context).ToLocalChecked()->Value();
@@ -132,7 +77,7 @@ index 97cf24ad5f4a6..c0beaca0a1626 100644
 +        switch(mode) {
 +          // SVG
 +          case 0: {
-+            picture->Playback(SkSVGCanvas::Make(rect, stream.get()).get());
++            picture->Playback(SkSVGCanvas::Make(rect, &stream).get());
 +
 +            break;
 +          }
@@ -144,7 +89,7 @@ index 97cf24ad5f4a6..c0beaca0a1626 100644
 +            metadata.fTitle = *title;
 +            metadata.fCreator = "html2svg PDF back-end";
 +
-+            auto document = SkPDF::MakeDocument(stream.get(), metadata);
++            auto document = SkPDF::MakeDocument(&stream, metadata);
 +
 +            picture->Playback(document->beginPage(width, height));
 +            document->endPage();
@@ -177,11 +122,16 @@ index 97cf24ad5f4a6..c0beaca0a1626 100644
 +
 +            assert(result != nullptr);
 +
-+            stream->write(result->data(), result->size());
++            stream.write(result->data(), result->size());
 +
 +            break;
 +          }
 +        }
++
++        auto buffer = v8::ArrayBuffer::New(isolate, stream.bytesWritten());
++
++        stream.copyTo(buffer->Data());
++        args.GetReturnValue().Set(buffer);
 +      }
 +  );
 +
