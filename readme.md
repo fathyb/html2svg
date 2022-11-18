@@ -33,13 +33,14 @@ Commands:
 
 ### Server
 
-An HTTP server is also provided:
+An HTTP server is also provided, all CLI options are supported:
 
 ```shell
 # Start a server on port 8080
 $ docker run -p 8080:8080 fathyb/html2svg serve
 # Export to SVG
 $ curl -d http://google.fr http://localhost:8080 > google.svg
+$ curl -d '{"url": "http://google.fr", "format": "svg"}' http://localhost:8080 > google.svg
 # Export to PDF
 $ curl -d '{"url": "http://google.fr", "format": "pdf"}' http://localhost:8080 > google.pdf
 # Export to PNG
